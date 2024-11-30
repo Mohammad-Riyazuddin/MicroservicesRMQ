@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # RabbitMQ service
+  rabbitmq:
+    image: "rabbitmq:management"
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "15672:15672"  # RabbitMQ Management Console
+      - "5672:5672"    # RabbitMQ AMQP protocol
+    networks:
+      - app-network
+
+  # User Microservice v1
+  usermicroservicev1:
+    build:
+      context: ./usermicroservicev1  # Path to usermicroservicev1
+    container_name: usermicroservicev1
+    ports:
+      - "8001:8000"  # Expose port for FastAPI app
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # User Microservice v2
+  usermicroservicev2:
+    build:
+      context: ./usermicroservicev2  # Path to usermicroservicev2
+    container_name: usermicroservicev2
+    ports:
+      - "8002:8000"  # Expose port for FastAPI app
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # Order Microservice
+  ordermicroservice:
+    build:
+      context: ./ordermicroservice  # Path to ordermicroservice
+    container_name: ordermicroservice
+    ports:
+      - "8003:8000"  # Expose port for FastAPI app
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # Event Listener
+  eventlistener:
+    build:
+      context: ./ordermicroservice  # Use the same context as ordermicroservice
+      dockerfile: Dockerfile.events # Specify the Dockerfile for eventlistener
+    container_name: eventlistener
+    networks:
+      - app-network
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # API Gateway
+  apigateway:
+    build:
+      context: ./apigateway  # Path to the API Gateway
+    container_name: apigateway
+    ports:
+      - "8000:8000"  # Expose port for FastAPI Gateway
+    networks:
+      - app-network
+    depends_on:
+      - usermicroservicev1
+      - usermicroservicev2
+      - ordermicroservice
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    command: uvicorn app:app --host 0.0.0.0 --port 8000
+
+networks:
+  app-network:
+    driver: bridge
