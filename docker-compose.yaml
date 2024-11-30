@@ -13,6 +13,11 @@ services:
       - "5672:5672"    # RabbitMQ AMQP protocol
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # User Microservice v1
   usermicroservicev1:
@@ -71,7 +76,8 @@ services:
     networks:
       - app-network
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     environment:
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_DEFAULT_USER=guest

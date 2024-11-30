@@ -22,6 +22,7 @@ def handle_event(ch, method, properties, body):
                 {"user_id": payload["user_id"]},  # Match user_id
                 {
                     "$set": {
+                        "user_id": payload["user_id"],
                         "email": payload["email"],
                         "delivery_address": payload["delivery_address"]
                     }

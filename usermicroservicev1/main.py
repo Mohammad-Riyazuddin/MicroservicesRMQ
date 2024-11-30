@@ -20,15 +20,15 @@ def create_user(user: User):
 def update_user(user_id: str, user: User):
     # Convert string to ObjectId for MongoDB _id
     try:
-        mongo_id = ObjectId(user_id)
+        user_id = user_id
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid _id format")
 
     # Perform the update using MongoDB's _id
     result = users_collection.update_one(
-        {"_id": mongo_id},  # Find the document by MongoDB _id
+        {"user_id": user_id},  # Find the document by MongoDB _id
         {"$set": {
-            "user_id": user.user_id, 
+            "user_id": user.user_id,
             "email": user.email, 
             "delivery_address": user.delivery_address
         }}
@@ -41,7 +41,7 @@ def update_user(user_id: str, user: User):
     # Publish the event that the user was updated
     publish_event(
         "user_updated",
-        {
+        {   
             "user_id": user.user_id,
             "email": user.email,
             "delivery_address": user.delivery_address
